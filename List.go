@@ -2,6 +2,7 @@ package lockfree
 
 import "sync/atomic"
 import "unsafe"
+import "fmt"
 
 const INT64_MAX = int64(^uint64(0) >> 1)
 
@@ -46,7 +47,7 @@ func CreateList(defaultVal interface{}, maxSize int64) List {
 }
 
 // 往无锁链表中追加一个元素。第一个返回值代表元素是否插入成功；若链表状态是disabled，则第二个返回值是false。
-func (this List) PushBack(val interface{}) (bool, bool) {
+func (this *List) PushBack(val interface{}) (bool, bool) {
 	if this.disabled {
 		return false, false
 	}
@@ -78,19 +79,23 @@ func (this List) PushBack(val interface{}) (bool, bool) {
 	return true, true
 }
 
-// 弹出一个元素。若链表状态是disabled，则第二个返回值是false。
-func (this List) PopFront() (interface{}, bool) {
-	if this.disabled {
-		return this.nullVal, false
-	}
-
+// 弹出一个元素。若链表状态是disabled且链表中已为空，则第二个返回值是false。
+func (this *List) PopFront() (interface{}, bool) {
 	p := (*item)(this.head)
 	if p.next == nil {
+		if this.disabled {
+			// 如果已不可用，且链表中已无数据
+			return this.nullVal, false
+		}
 		return this.nullVal, true // 如果链表为空，则返回NullVal
 	}
-	for atomic.CompareAndSwapPointer(&this.head, (itemPtr)(p), itemPtr(p.next)) {
+	for !atomic.CompareAndSwapPointer(&this.head, itemPtr(p), itemPtr(p.next)) {
 		p := (*item)(this.head)
 		if p.next == nil {
+			if this.disabled {
+				// 如果已不可用，且链表中已无数据
+				return this.nullVal, false
+			}
 			return this.nullVal, true // 如果链表为空，则返回NullVal
 		}
 	}
@@ -99,27 +104,37 @@ func (this List) PopFront() (interface{}, bool) {
 	return *((*interface{})(((*item)(p.next)).valPtr)), true
 }
 
-func (this List) Disable() {
+func (this *List) Disable() {
 	this.disabled = true
 }
-func (this List) Enable() {
+func (this *List) Enable() {
 	this.disabled = false
 }
-func (this List) IsDisabled() bool {
+func (this *List) IsDisabled() bool {
 	return this.disabled == true
 }
 
 // 返回当前链表的长度
-func (this List) Size() int64 {
+func (this *List) Size() int64 {
 	return this.elNum
 }
 
 // 返回当前链表是否为空
-func (this List) IsEmpty() bool {
+func (this *List) IsEmpty() bool {
 	return (*item)(this.head).next == nil
 }
 
 // 设置链表最大长度
-func (this List) SetMaxSize(maxSize int64) {
+func (this *List) SetMaxSize(maxSize int64) {
 	this.maxLength = maxSize
+}
+
+func (this *List) Print() {
+	fmt.Print("size: ", this.elNum, ", data: ")
+	p := (*item)(this.head)
+	for p.next != nil {
+		fmt.Print(*((*interface{})((*item)(p.next).valPtr)), ",")
+		p = (*item)(p.next)
+	}
+	fmt.Println()
 }
