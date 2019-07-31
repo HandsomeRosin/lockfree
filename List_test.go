@@ -12,13 +12,15 @@ var queue List
 
 func init() {
 	defaultVal = -10086
-	queue = CreateList(defaultVal)
+	queue = CreateCASList(defaultVal)
 }
 
-func TestBasicList(t *testing.T) {
+var dataNum = 5000
+
+func TestBasicCas(t *testing.T) {
 	t1 := time.Now()
-	for i := 1; i <= 1000000; i++ {
-		suc, _ := queue.PushBack(i)
+	for i := 1; i <= dataNum; i++ {
+		suc := queue.PushBack(i)
 		if !suc {
 			// fmt.Println("push fail: ", i)
 		} else {
@@ -41,15 +43,15 @@ func TestBasicList(t *testing.T) {
 	}
 	fmt.Println("用时：", time.Since(t1))
 }
-func TestList(t *testing.T) {
+func TestCas(t *testing.T) {
 	wgr := sync.WaitGroup{}
 	wgw := sync.WaitGroup{}
 	t1 := time.Now()
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 4; i++ {
 		wgr.Add(1)
 		go reader(i*1000000, &wgr)
 	}
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 4; i++ {
 		wgw.Add(1)
 		go writter(&wgw)
 	}
@@ -80,7 +82,6 @@ func TestChannel(t *testing.T) {
 	fmt.Println("END-------------------------------------------")
 }
 
-var dataNum int = 1000000
 var buffer int = 0
 var ch chan int = make(chan int, buffer)
 
@@ -88,16 +89,12 @@ var ch chan int = make(chan int, buffer)
 
 func reader(startNum int, wg *sync.WaitGroup) {
 	for i := 0; i < dataNum; i++ {
-		suc, enable := queue.PushBack(startNum + i)
+		suc := queue.PushBack(startNum + i)
 		for !suc {
-			if !enable {
-				goto END
-			}
-			suc, enable = queue.PushBack(startNum + i)
+			suc = queue.PushBack(startNum + i)
 		}
 		// fmt.Println("push: ", queue.Size())
 	}
-END:
 	wg.Done()
 }
 
@@ -113,7 +110,6 @@ func writter(wg *sync.WaitGroup) {
 		if r == defaultVal {
 			continue
 		}
-		// fmt.Println("pop: ", r, "   ", queue.Size())
 		// mutex.Lock()
 		// m[r.(int)] = "" // 为了核对pop出来的数据总数是否与push进去的一样，为了防止竞争错误导致的重复，这里用map来防重
 		// mutex.Unlock()
