@@ -14,12 +14,31 @@ const locked = 1
 const unlocked = 0
 
 func (spin *spinMutex) lock() {
-	for !atomic.CompareAndSwapInt32(&spin.mutex, unlocked, locked) {
+	// for !atomic.CompareAndSwapInt32(&spin.mutex, unlocked, locked) {
+	// }
+BEGINING:
+	for spin.mutex != unlocked {
+	}
+	if !atomic.CompareAndSwapInt32(&spin.mutex, unlocked, locked) {
+		goto BEGINING
 	}
 }
 
 func (spin *spinMutex) unlock() {
 	atomic.SwapInt32(&spin.mutex, unlocked)
+}
+
+type spinNcMutex struct {
+	mutex int32
+}
+
+func (spin *spinNcMutex) lock() {
+BEGINING:
+	for spin.mutex != unlocked {
+	}
+	if !atomic.CompareAndSwapInt32(&spin.mutex, unlocked, locked) {
+		goto BEGINING
+	}
 }
 
 // 互斥锁

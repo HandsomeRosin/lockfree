@@ -77,11 +77,11 @@ func TestMutex(t *testing.T) {
 	wgr := sync.WaitGroup{}
 	wgw := sync.WaitGroup{}
 	t1 := time.Now()
-	for i := 0; i < 4; i++ {
+	for i := 0; i < asyncNum; i++ {
 		wgr.Add(1)
 		go readerMutex(i*1000000, &wgr)
 	}
-	for i := 0; i < 4; i++ {
+	for i := 0; i < asyncNum; i++ {
 		wgw.Add(1)
 		go writterMutex(&wgw)
 	}
@@ -96,11 +96,11 @@ func TestSpin(t *testing.T) {
 	wgr := sync.WaitGroup{}
 	wgw := sync.WaitGroup{}
 	t1 := time.Now()
-	for i := 0; i < 4; i++ {
+	for i := 0; i < asyncNum; i++ {
 		wgr.Add(1)
 		go readerMutex(i*1000000, &wgr)
 	}
-	for i := 0; i < 4; i++ {
+	for i := 0; i < asyncNum; i++ {
 		wgw.Add(1)
 		go writterMutex(&wgw)
 	}

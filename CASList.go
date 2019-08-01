@@ -61,7 +61,6 @@ func (this *casList) PushBack(val interface{}) bool {
 			p = (*item)(p.next)
 		}
 	}
-	// atomic.AddInt64(&this.elNum, 1)
 
 	atomic.CompareAndSwapPointer(&this.tail, itemPtr(oldp), itemPtr(node))
 	return true
@@ -78,7 +77,7 @@ func (this *casList) PopFront() (interface{}, bool) {
 		return this.nullVal, true // 如果链表为空，则返回NullVal
 	}
 	for !atomic.CompareAndSwapPointer(&this.head, itemPtr(p), itemPtr(p.next)) {
-		p := (*item)(this.head)
+		p = (*item)(this.head)
 		if p.next == nil {
 			if this.disabled {
 				// 如果已不可用，且链表中已无数据
@@ -87,7 +86,6 @@ func (this *casList) PopFront() (interface{}, bool) {
 			return this.nullVal, true // 如果链表为空，则返回NullVal
 		}
 	}
-	// atomic.AddInt64(&this.elNum, -1)
 
 	return *((*interface{})(((*item)(p.next)).valPtr)), true
 }
